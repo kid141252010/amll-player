@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use amll_player_core::AudioThreadEventMessage;
 use amll_player_core::AudioThreadMessage;
 use amll_player_core::{AudioPlayer, AudioPlayerConfig, AudioPlayerHandle};
-use rodio::OutputStream;
-use rodio::OutputStreamBuilder;
+use rodio::DeviceSinkBuilder;
+use rodio::MixerDeviceSink;
 use tauri::{AppHandle, Emitter, Runtime};
 use tokio::sync::RwLock;
 use tracing::error;
@@ -37,7 +37,7 @@ pub async fn set_media_controls_enabled(enabled: bool) {
 
 pub fn init_local_player<R: Runtime>(app: AppHandle<R>) {
     std::thread::spawn(move || {
-        let stream = OutputStreamBuilder::open_default_stream().expect("无法创建默认的音频输出流");
+        let stream = DeviceSinkBuilder::open_default_sink().expect("无法创建默认的音频输出流");
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -47,7 +47,7 @@ pub fn init_local_player<R: Runtime>(app: AppHandle<R>) {
     });
 }
 
-async fn local_player_main<R: Runtime>(app: AppHandle<R>, stream: OutputStream) {
+async fn local_player_main<R: Runtime>(app: AppHandle<R>, stream: MixerDeviceSink) {
     let player = AudioPlayer::new(AudioPlayerConfig {}, stream);
     let handler = player.handler();
     PLAYER_HANDLER.write().await.replace(handler);

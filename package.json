@@ -4,16 +4,17 @@
 	"license": "GPL-3.0",
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
-		"@typescript/native-preview": "7.0.0-dev.20260504.1"
+		"@typescript/native-preview": "7.0.0-dev.20260506.1"
 	},
 	"scripts": {
 		"format": "pnpm biome format . --write",
 		"typecheck": "pnpm tsgo -b",
 		"dev": "pnpm -F player tauri dev"
 	},
-	"packageManager": "pnpm@10.33.0",
+	"packageManager": "pnpm@10.33.3",
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@applemusic-like-lyrics/fft",
 			"@applemusic-like-lyrics/lyric",
 			"@biomejs/biome",
 			"@parcel/watcher",
