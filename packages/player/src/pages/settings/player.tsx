@@ -1,7 +1,5 @@
 import { branch, commit } from "virtual:git-metadata-plugin";
 import {
-	DomLyricPlayer,
-	DomSlimLyricPlayer,
 	MeshGradientRenderer,
 	PixiRenderer,
 } from "@applemusic-like-lyrics/core";
@@ -15,8 +13,6 @@ import {
 	enableLyricTranslationLineAtom,
 	fftDataRangeAtom,
 	type LyricBackgroundRenderer,
-	LyricPlayerImplementation,
-	type LyricPlayerImplementationObject,
 	LyricSizePreset,
 	lyricBackgroundFPSAtom,
 	lyricBackgroundRendererAtom,
@@ -25,7 +21,6 @@ import {
 	lyricFontFamilyAtom,
 	lyricFontWeightAtom,
 	lyricLetterSpacingAtom,
-	lyricPlayerImplementationAtom,
 	lyricSizePresetAtom,
 	lyricWordFadeWidthAtom,
 	PlayerControlsType,
@@ -498,56 +493,6 @@ const LyricContentSettings = () => {
 
 const LyricAppearanceSettings = () => {
 	const { t } = useTranslation();
-	const [lyricPlayerImplValue, setLyricPlayerImplValue] = useAtom(
-		lyricPlayerImplementationAtom,
-	);
-	const lyricPlayerImplementationMenu = useMemo(
-		() => [
-			{
-				label: t(
-					"page.settings.lyricAppearance.lyricPlayerImplementation.menu.dom",
-					"DOM",
-				),
-				value: LyricPlayerImplementation.Dom,
-			},
-			{
-				label: t(
-					"page.settings.lyricAppearance.lyricPlayerImplementation.menu.dom-slim",
-					"DOM（阉割版）",
-				),
-				value: LyricPlayerImplementation.DomSlim,
-			},
-		],
-		[t],
-	);
-
-	const getLyricPlayerString = (
-		value: LyricPlayerImplementationObject,
-	): string => {
-		if (!value?.lyricPlayer) return LyricPlayerImplementation.Dom;
-		if (value.lyricPlayer === DomLyricPlayer)
-			return LyricPlayerImplementation.Dom;
-		if (value.lyricPlayer === DomSlimLyricPlayer)
-			return LyricPlayerImplementation.DomSlim;
-		return LyricPlayerImplementation.Dom;
-	};
-
-	const handleLyricPlayerChange = (selectedString: string) => {
-		let implementationObject: LyricPlayerImplementationObject;
-		switch (selectedString) {
-			case LyricPlayerImplementation.DomSlim:
-				implementationObject = { lyricPlayer: DomSlimLyricPlayer };
-				break;
-			default:
-				implementationObject = { lyricPlayer: DomLyricPlayer };
-				break;
-		}
-		setLyricPlayerImplValue(implementationObject);
-		localStorage.setItem(
-			"amll-react-full.lyricPlayerImplementation",
-			selectedString,
-		);
-	};
 	const [lyricSize, setLyricSize] = useAtom(lyricSizePresetAtom);
 
 	const lyricSizeMenu = useMemo(
@@ -610,30 +555,6 @@ const LyricAppearanceSettings = () => {
 			<SubTitle>
 				<Trans i18nKey="page.settings.lyricAppearance.subtitle">歌词样式</Trans>
 			</SubTitle>
-			<SettingEntry
-				label={t(
-					"page.settings.lyricAppearance.lyricPlayerImplementation.label",
-					"歌词播放器实现",
-				)}
-				description={t(
-					"page.settings.lyricAppearance.lyricPlayerImplementation.description",
-					"目前有两个歌词播放实现\n- DOM：使用 DOM 元素实现，目前效果最全，但性能开销大\n- Canvas：使用 Canvas 实现，仍在开发中，性能优异，但是部分细节效果不足",
-				)}
-			>
-				<Select.Root
-					value={getLyricPlayerString(lyricPlayerImplValue)}
-					onValueChange={handleLyricPlayerChange}
-				>
-					<Select.Trigger />
-					<Select.Content>
-						{lyricPlayerImplementationMenu.map((item) => (
-							<Select.Item key={item.value} value={item.value}>
-								{item.label}
-							</Select.Item>
-						))}
-					</Select.Content>
-				</Select.Root>
-			</SettingEntry>
 			<LyricFontSetting />
 			<SettingEntry
 				label={t(
