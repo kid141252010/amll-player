@@ -33,7 +33,7 @@
 	"identifier": "net.stevexmh.amllplayer",
 	"plugins": {
 		"updater": {
-			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVBMzY2M0I2Qjc4MjBBNTUKUldSVkNvSzN0bU0yV2k0bUhxcm9jczBNYk9lTllYaTFyWHVEZ2xaSloxaVhpSnQ1RHZFSUtnS2IK",
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IENCRDgzOTUzRjlCNUVBNTIKUldSUzZyWDVVem5ZeTBuQy9sM0Z3a25xcm96OHdaOU5oM0hHeXpGS0NMTGJBdDZzTzFId2VzMlUK",
 			"endpoints": [
 				"https://github.com/amll-dev/amll-player/releases/download/main-player-dev/latest.json"
 			]
