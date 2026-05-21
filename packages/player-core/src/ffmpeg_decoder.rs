@@ -573,12 +573,12 @@ impl Source for FFmpegDecoder {
         None
     }
 
-    fn channels(&self) -> u16 {
-        self.channels
+    fn channels(&self) -> std::num::NonZeroU16 {
+        std::num::NonZeroU16::new(self.channels).expect("音频声道数为 0")
     }
 
-    fn sample_rate(&self) -> u32 {
-        self.sample_rate
+    fn sample_rate(&self) -> std::num::NonZeroU32 {
+        std::num::NonZeroU32::new(self.sample_rate).expect("音频采样率为 0")
     }
 
     fn total_duration(&self) -> Option<Duration> {

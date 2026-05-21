@@ -19,7 +19,7 @@ use crate::{
 };
 use anyhow::{Context, anyhow};
 use parking_lot::RwLock as ParkingLotRwLock;
-use rodio::{OutputStream, Sink, Source};
+use rodio::{MixerDeviceSink, Player, Source};
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock as TokioRwLock;
 use tokio::{
@@ -33,9 +33,9 @@ pub struct AudioPlayer {
     evt_receiver: AudioPlayerEventReceiver,
     msg_sender: AudioPlayerMessageSender,
     msg_receiver: AudioPlayerMessageReceiver,
-    sink: Arc<Sink>,
+    audio_player: Arc<Player>,
     current_decoder_handle: Option<FFmpegDecoderHandle>,
-    stream_handle: OutputStream,
+    stream_handle: MixerDeviceSink,
     volume: f64,
     current_song: Option<SongData>,
     current_audio_info: Arc<TokioRwLock<AudioInfo>>,
@@ -94,16 +94,16 @@ pub type LocalSongLoaderFn = Box<dyn Fn(String) -> LocalSongLoaderReturn + Send 
 pub struct AudioPlayerConfig {}
 
 impl AudioPlayer {
-    pub fn new(_config: AudioPlayerConfig, handle: OutputStream) -> Self {
+    pub fn new(_config: AudioPlayerConfig, handle: MixerDeviceSink) -> Self {
         let (evt_sender, evt_receiver) = tokio::sync::mpsc::unbounded_channel();
         let (msg_sender, msg_receiver) = tokio::sync::mpsc::unbounded_channel();
-        let sink = Arc::new(Sink::connect_new(handle.mixer()));
+        let audio_player = Arc::new(Player::connect_new(handle.mixer()));
 
-        sink.pause();
+        audio_player.pause();
 
         let stream_config = handle.config();
-        let target_channels = stream_config.channel_count();
-        let target_sample_rate = stream_config.sample_rate();
+        let target_channels = stream_config.channel_count().get();
+        let target_sample_rate = stream_config.sample_rate().get();
 
         info!("音频输出设备 声道数:{target_channels}, 采样率:{target_sample_rate}");
 
@@ -230,7 +230,7 @@ impl AudioPlayer {
             msg_sender,
             msg_receiver,
             stream_handle: handle,
-            sink,
+            audio_player,
             current_decoder_handle: None,
             volume: 1.0,
             current_song: None,
@@ -316,7 +316,7 @@ impl AudioPlayer {
                     else { break; }
                 }
                 _ = check_end_interval.tick() => {
-                    if self.sink.empty() && !self.sink.is_paused() && self.current_song.is_some() {
+                    if self.audio_player.empty() && !self.audio_player.is_paused() && self.current_song.is_some() {
                         let _ = self.play_pos_sx.send((false, Some(0.0)));
                         self.current_song = None;
 
@@ -378,7 +378,7 @@ impl AudioPlayer {
         if let Some(ref data) = msg.data {
             match data {
                 AudioThreadMessage::ResumeAudio => {
-                    self.sink.play();
+                    self.audio_player.play();
                     let _ = self.play_pos_sx.send((true, None));
                     self.update_media_manager_playback_state(true).await?;
                     let _ = emitter
@@ -386,7 +386,7 @@ impl AudioPlayer {
                         .await;
                 }
                 AudioThreadMessage::PauseAudio => {
-                    self.sink.pause();
+                    self.audio_player.pause();
                     let _ = self.play_pos_sx.send((false, None));
                     self.update_media_manager_playback_state(false).await?;
                     let _ = emitter
@@ -394,11 +394,11 @@ impl AudioPlayer {
                         .await;
                 }
                 AudioThreadMessage::ResumeOrPauseAudio => {
-                    let was_paused = self.sink.is_paused();
+                    let was_paused = self.audio_player.is_paused();
                     if was_paused {
-                        self.sink.play();
+                        self.audio_player.play();
                     } else {
-                        self.sink.pause();
+                        self.audio_player.pause();
                     }
 
                     let is_playing_now = was_paused;
@@ -429,7 +429,7 @@ impl AudioPlayer {
                                 fft_player_clone.write().clear();
                             })
                             .await?;
-                            let is_playing = !self.sink.is_paused();
+                            let is_playing = !self.audio_player.is_paused();
                             let _ = self.play_pos_sx.send((is_playing, Some(*position)));
                             self.update_media_manager_playback_state(is_playing).await?;
                         }
@@ -443,7 +443,7 @@ impl AudioPlayer {
                 }
                 AudioThreadMessage::SetVolume { volume } => {
                     self.volume = volume.clamp(0.0, 1.0);
-                    self.sink.set_volume(self.volume as f32);
+                    self.audio_player.set_volume(self.volume as f32);
                     let _ = emitter
                         .emit(AudioThreadEvent::VolumeChanged {
                             volume: self.volume,
@@ -474,7 +474,7 @@ impl AudioPlayer {
 
     async fn start_playing_song(&mut self, clear_sink: bool) -> anyhow::Result<()> {
         if clear_sink {
-            self.sink.stop();
+            self.audio_player.stop();
 
             let fft_player_clone = self.fft_player.clone();
             tokio::task::spawn_blocking(move || {
@@ -482,8 +482,8 @@ impl AudioPlayer {
             })
             .await?;
 
-            self.sink = Arc::new(Sink::connect_new(self.stream_handle.mixer()));
-            self.sink.set_volume(self.volume as f32);
+            self.audio_player = Arc::new(Player::connect_new(self.stream_handle.mixer()));
+            self.audio_player.set_volume(self.volume as f32);
             self.current_decoder_handle = None;
         }
 
@@ -519,10 +519,10 @@ impl AudioPlayer {
         *self.current_audio_info.write().await = info.clone();
         *self.current_audio_quality.write().await = quality.clone();
 
-        self.sink.append(source);
+        self.audio_player.append(source);
         self.update_media_manager_metadata().await?;
 
-        let is_playing = !self.sink.is_paused();
+        let is_playing = !self.audio_player.is_paused();
         self.update_media_manager_playback_state(is_playing).await?;
         let _ = self.play_pos_sx.send((is_playing, Some(0.0)));
 
