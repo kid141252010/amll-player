@@ -522,8 +522,7 @@ const LyricAppearanceSettings = () => {
 
 	const handleLyricPlayerChange = (selectedString: string) => {
 		const implementationObject: LyricPlayerImplementationObject = {
-			lyricPlayer:
-				DomLyricPlayer as LyricPlayerImplementationObject["lyricPlayer"],
+			lyricPlayer: DomLyricPlayer,
 		};
 		setLyricPlayerImplValue(implementationObject);
 		localStorage.setItem(
@@ -943,12 +942,12 @@ const LyricBackgroundSettings = () => {
 		switch (selectedString) {
 			case "mesh":
 				rendererObject = {
-					renderer: MeshGradientRenderer as LyricBackgroundRenderer["renderer"],
+					renderer: MeshGradientRenderer,
 				};
 				break;
 			case "pixi":
 				rendererObject = {
-					renderer: PixiRenderer as LyricBackgroundRenderer["renderer"],
+					renderer: PixiRenderer,
 				};
 				break;
 			default:
