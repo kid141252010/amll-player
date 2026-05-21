@@ -67,8 +67,8 @@ impl super::MediaStateManagerBackend for MediaStateManagerWindowsBackend {
         {
             let sx_clone = sx.clone();
             smtc.ButtonPressed(&TypedEventHandler::new(
-                move |_, args: &Option<SystemMediaTransportControlsButtonPressedEventArgs>| {
-                    if let Some(args) = args {
+                move |_, args: Ref<SystemMediaTransportControlsButtonPressedEventArgs>| {
+                    if let Some(args) = args.as_ref() {
                         let button = args.Button()?;
                         let msg = match button {
                             SystemMediaTransportControlsButton::Play => {
@@ -102,8 +102,8 @@ impl super::MediaStateManagerBackend for MediaStateManagerWindowsBackend {
             let sx_clone = sx.clone();
             let cur_position_clone = Arc::clone(&cur_position);
             smtc.PlaybackPositionChangeRequested(&TypedEventHandler::new(
-                move |_, args: &Option<PlaybackPositionChangeRequestedEventArgs>| {
-                    if let Some(args) = args {
+                move |_, args: Ref<PlaybackPositionChangeRequestedEventArgs>| {
+                    if let Some(args) = args.as_ref() {
                         let pos: Duration = args.RequestedPlaybackPosition()?.into();
                         cur_position_clone.store(pos.as_millis() as u64, Ordering::Relaxed);
                         let _ = sx_clone.send(MediaStateMessage::Seek(pos.as_secs_f64()));
@@ -184,12 +184,14 @@ impl super::MediaStateManagerBackend for MediaStateManagerWindowsBackend {
         } else {
             let stream = InMemoryRandomAccessStream::new()?;
             let writer = DataWriter::CreateDataWriter(&stream)?;
+
             writer.WriteBytes(cover_data)?;
             writer
                 .StoreAsync()?
-                .get()
+                .join()
                 .context("未能将图片数据存储到内存中")?;
             writer.DetachStream()?;
+            stream.Seek(0)?;
 
             let stream_ref = RandomAccessStreamReference::CreateFromStream(&stream)?;
             self.smtc_updater.SetThumbnail(&stream_ref)?;
